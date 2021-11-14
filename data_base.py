@@ -25,22 +25,6 @@ def login_user(username,password):
 	lock.release()
 	return data
 
-# def login_user_safe2(username,password):
-# 	c.execute("SELECT * FROM userstable WHERE username= '%s' AND password = '%s'"),(username, password);
-# 	data = c.fetchall()
-# 	return data
-
-# def login_user_unsafe(username,password):
-# 	c.execute("SELECT * FROM userstable WHERE username='{}' AND password = '{}'".format(username,password))
-# 	data = c.fetchall()
-# 	return data
-
-# def login_user_unsafe2(username,password):
-# 	c.execute(f"SELECT * FROM userstable WHERE username= '{username}' AND password= '{password}'")
-# 	data = c.fetchall()
-# 	return data
-
-
 def view_all_users():
 	c.execute('SELECT * FROM userstable')
 	data = c.fetchall()
