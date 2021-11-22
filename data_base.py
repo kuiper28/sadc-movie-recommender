@@ -40,6 +40,12 @@ def add_ratings(username, movieid, rating):
 	conn.commit()
 	lock.release()
 
+def delete_ratings(username, movieid):
+	lock.acquire(True)
+	c.execute('DELETE from ratingstable where username=? and movieid=?',(username, movieid))
+	conn.commit()
+	lock.release()
+
 def login_user(username,password):
 	lock.acquire(True)
 	c.execute('SELECT * FROM userstable WHERE username =? AND password = ?',(username,password))
@@ -54,5 +60,10 @@ def view_all_users():
 
 def view_all_movies(username):
 	c.execute('SELECT m.name, r.rating from movietable m, ratingstable r where m.movieid=r.movieid and r.username='+ '"'+str(username)+'"')
+	data = c.fetchall()
+	return data
+
+def all_movies():
+	c.execute('Select m.name, m.movieid from movietable m')
 	data = c.fetchall()
 	return data

@@ -1,0 +1,13 @@
+body {
+    color: #fff;
+    background-color: #4F8BF9;
+}
+
+.stButton>button {
+    height: 5rem;
+    width: 6rem;
+}
+
+.stTextInput>div>div>input {
+    color: #4F8BF9;
+}
