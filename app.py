@@ -33,17 +33,20 @@ def readData():
 
 	movies = pd.read_csv(movie_path, sep='::', header=None, usecols=[1], engine='python', encoding = "ISO-8859-1")
 	movies.columns = ['title']
-	
+
 	global X, y, dim
 	X = ratings[['user_id', 'movie_id']].values
 	y = ratings['rating'].values
 	dim = (np.unique(np.array(X[:,0])).size, np.unique(np.array(X[:,1])).size)
+	# print(X)
+	# print(y)
+	# print(dim)
 
+	return (X, y, dim, movies)
 @st.cache
 def getAllMovies():
 	return all_movies()
 
-@st.cache
 def create_rating_matrix(X, y, dim):
   r = X[:,0]
   c = X[:,1]
@@ -53,8 +56,55 @@ def create_rating_matrix(X, y, dim):
   M = np.asarray(M)
   return M
 
+def getPredictionForSpecificUser(X,y,dim, movies):
+	ratings = view_all_ratings(st.session_state.user)
+	clean_db = pd.DataFrame(ratings,columns=["username", "rating", "movieid"])
+	clean_db["userid"] = 6040
+
+	X_user = clean_db[['userid', 'movieid']].values
+	y_user = clean_db['rating'].values
+
+	count = 0
+	buff_X = np.copy(X)
+	print(buff_X)
+	buff_y = np.copy(y)
+	for x in buff_X:
+		if x[0] == 6040:
+			break
+		count += 1
+
+	new_X = buff_X[:count]
+	new_y = buff_y[:count]	
+	# for x in X_user:
+	# 	new_X += x
+	# for y in y_user:
+	# 	new_y += y
+
+	new_X = np.append(buff_X[:count], X_user, axis = 0)
+	new_y = np.append(buff_y[:count], y_user)
+
+	new_dim = (np.unique(np.array(new_X[:,0])).size, np.unique(np.array(new_X[:,1])).size)
+	
+
+
+	M_user = create_rating_matrix(new_X, new_y, new_dim)
+
+	loaded_model = cPickle.load(open("nmf_model.cpickle", 'rb'))
+	W = loaded_model.transform(M_user)
+	H = loaded_model.components_.T
+	P_user = H.dot(W.T).T
+	P_user[P_user > 5] = 5.                   
+	P_user[P_user < 1] = 1.
+
+	st.subheader("Movie recommendations")
+	recommended_movies = make_recommendation_for_an_existing_user(M_user, P_user, movies, 6039, k = 10)
+	print(recommended_movies)
+	clean_db = pd.DataFrame(recommended_movies,columns=["title"])
+	st.table(clean_db)
+
 @st.cache
-def load_model_and_get_predictions():
+def load_model_and_get_predictions(X, y, dim):
+  
   loaded_model = cPickle.load(open("nmf_model.cpickle", 'rb'))
   W = loaded_model.transform(create_rating_matrix(X, y, dim))
   H = loaded_model.components_.T
@@ -64,11 +114,12 @@ def load_model_and_get_predictions():
   return P
 
 @st.cache
-def make_recommendation_for_an_existing_user(initial_rating_matrix, predicted_rating_matrix, movies, user_idx, k=5):
+def make_recommendation_for_an_existing_user(initial_rating_matrix, predicted_rating_matrix, movies, user_idx, k=10):
 	user_ratings = pd.DataFrame(initial_rating_matrix).iloc[user_idx, :]              
 	user_prediction = pd.DataFrame(predicted_rating_matrix).iloc[user_idx,:]
 	preferred_movies = np.flip(np.argsort(np.array(user_ratings))[-k:])
 	recommended_movies = np.flip(np.argsort(np.array(user_prediction))[-k:])
+	print(movies.iloc[recommended_movies])
 	return movies.iloc[recommended_movies]
 
 @st.cache 
@@ -101,7 +152,7 @@ def populate_databse():
 def get_movies_for_a_user():
 	ratings_columns = ["user_id", "movie_id", "rating", "time_stamp"]
 	ratings = pd.read_csv("ml-1m/ratings.dat", sep='::', names=ratings_columns)
-	print(ratings.values[:10])
+	# print(ratings.values[:10])
 
 def signup_func():
 	st.sidebar.subheader("Create An Account")
@@ -141,18 +192,22 @@ def try_login(username, password):
 		st.warning("bad")
 		st.warning("Incorrect Username/Password")
 
-def run_app(username):
+def run_app(username, X, y, dim, movies):
 	st.success("Logged In as {}".format(username))
 
-	if st.checkbox("Make movie recommendations"):
+	if st.checkbox("Make movie recommendations", key=3):
 
-		predicted_rating_matrix = load_model_and_get_predictions()
+		# getPredictionForSpecificUser()
+		predicted_rating_matrix = load_model_and_get_predictions(X, y, dim)
 		initial_rating_matrix = create_rating_matrix(X,y,dim)
 
 		st.subheader("Movie recommendations")
 		recommended_movies = make_recommendation_for_an_existing_user(initial_rating_matrix, predicted_rating_matrix, movies, user_idx=int(username[-1]), k = 20)
 		clean_db = pd.DataFrame(recommended_movies,columns=["title"])
 		st.table(clean_db)
+
+	if st.checkbox("Make movie recommendations for new user", key=4):
+		getPredictionForSpecificUser(X,y,dim, movies)
 
 	st.header("Add movie ratings")
 	addNewMovie()
@@ -203,7 +258,7 @@ def logout():
 logged_in = False
 
 def main():
-	readData()
+	(X, y, dim, movies) = readData()
 
 	st.title("Movie Recommender")
 	if "user" not in st.session_state:
@@ -221,7 +276,7 @@ def main():
 		signup_func()
 
 	if st.session_state.user and logged_in:
-		run_app(st.session_state.user)
+		run_app(st.session_state.user, X, y, dim, movies)
 	else:
 		st.warning("Please log in first.")
 

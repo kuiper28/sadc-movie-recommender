@@ -1,6 +1,6 @@
 body {
     color: #fff;
-    background-color: #4F8BF9;
+    background-color: #ffffff;
 }
 
 .stButton>button {
@@ -8,6 +8,6 @@ body {
     width: 6rem;
 }
 
-.stTextInput>div>div>input {
+/* .stTextInput>div>div>input {
     color: #4F8BF9;
-}
+} */
