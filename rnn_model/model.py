@@ -10,7 +10,7 @@ class MovieRecommender(nn.Module):
 
         super(MovieRecommender, self).__init__()
         self.hidden_size = hidden_size
-        self.n_layers = number_of_layers
+        self.number_of_layers = number_of_layers
         self.num_items = num_items
 
         self.embedding = nn.Embedding(num_items, hidden_size)

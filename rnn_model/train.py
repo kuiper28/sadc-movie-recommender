@@ -92,7 +92,7 @@ try:
             loss = criterion(output, target_variable.contiguous().view(-1))
            
             val = (target_variable.data.view(-1).eq(torch.max(output, 1)[1].data).sum())
-            acc+= (val/float(len(output.data)))
+            acc += (val/float(len(output.data)))
             loss.backward()
 
             
