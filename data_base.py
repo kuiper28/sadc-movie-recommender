@@ -63,6 +63,11 @@ def view_all_movies(username):
 	data = c.fetchall()
 	return data
 
+def view_all_movies_group_by_rating(username):
+	c.execute('SELECT r.rating, count(r.rating) from movietable m, ratingstable r where m.movieid=r.movieid and r.username='+ '"'+str(username)+'" group by r.rating')
+	data = c.fetchall()
+	return data
+
 def all_movies():
 	c.execute('Select m.name, m.movieid from movietable m')
 	data = c.fetchall()

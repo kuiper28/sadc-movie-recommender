@@ -8,6 +8,9 @@ from data_base import *
 from scipy.sparse import csr_matrix
 from sklearn.decomposition import NMF
 
+import altair as alt
+import plotly.figure_factory as ff
+import matplotlib.pyplot as plt
 
 
 def local_css(file_name):
@@ -217,8 +220,11 @@ def run_app(username, X, y, dim, movies):
 
 	st.subheader("My watched movies")
 	users_result = view_all_movies(username)
-	clean_db = pd.DataFrame(users_result,columns=["name", "rating"])
+	clean_db = pd.DataFrame(users_result, columns=["name", "rating"])
+	user_result_by_rating = view_all_movies_group_by_rating(username)
+	user_df_group = pd.DataFrame(user_result_by_rating, columns=["rating", "Number of movies"])
 	st.table(clean_db)
+	st.bar_chart(user_df_group)
 	
 	
 
@@ -228,7 +234,7 @@ def format(df, id):
 
 def addNewMovie():
 	col1, col2, col3= st.columns(3)
-
+	
 	new_db = pd.DataFrame(getAllMovies(), columns=["title", "id"])
 
 	ratings = [1,2,3,4,5]
