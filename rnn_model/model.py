@@ -8,7 +8,7 @@ import numpy as np
 class MovieRecommender(nn.Module):
     def __init__(self, num_items, hidden_size, number_of_layers):
 
-        super(RNN, self).__init__()
+        super(MovieRecommender, self).__init__()
         self.hidden_size = hidden_size
         self.n_layers = number_of_layers
         self.num_items = num_items

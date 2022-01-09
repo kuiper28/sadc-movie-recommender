@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from model import RNN
+from model import MovieRecommender
 from torch.autograd import Variable
 from construct_dataset import *
 
@@ -59,7 +59,7 @@ data_sequence = DataSequence("MovieLens")
 train_sequences, Users, Items, test_sequences = data_sequence.getUserSequenes()
 # print "#TrainSequence, #Users, #Items", len(train_sequences), len(Users), max(Items)
 
-rnn = RNN(max(Items) + 1, hidden_size, num_layers)
+rnn = MovieRecommender(max(Items) + 1, hidden_size, num_layers)
 
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adagrad(filter(lambda p: p.requires_grad,rnn.parameters()), lr=learning_rate)
