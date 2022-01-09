@@ -14,7 +14,7 @@ class MovieRecommender(nn.Module):
         self.num_items = num_items
 
         self.embedding = nn.Embedding(num_items, hidden_size)
-        self.lstm = nn.LSTM(hidden_size, hidden_size, number_of_layers, bidirectional=True)
+        self.lstm = nn.GRU(hidden_size, hidden_size, number_of_layers, bidirectional=True)
         self.linear = nn.Linear(hidden_size * 2, num_items)
         self.init_weights()
 
