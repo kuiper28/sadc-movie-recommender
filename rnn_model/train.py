@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import numpy as np
 from model import MovieRecommender
 from torch.autograd import Variable
 from construct_dataset import *
@@ -17,6 +18,28 @@ clip = 0.25
 USE_CUDA = False
 seed = 1234734614
 torch.manual_seed(seed)
+
+
+class ParseDataset(torch.utils.data.Dataset):
+  def __init__(self, labels,  ids):
+    self.labels = labels
+    self.ids = ids
+  
+  def __len__(self):
+    return len(self.labels)
+
+  def get_batch_ratings(self, idx):
+    return np.array(self.labels[idx])
+
+  def get_batch_texts(self, idx):
+    return self.ids[idx]
+
+  def __getitem__(self, index):
+    texts = self.get_batch_texts(index)
+    ratings = self.get_batch_ratings(index)
+    return texts, ratings
+
+
 if USE_CUDA:
     torch.cuda.manual_seed(seed)
 
@@ -76,7 +99,6 @@ try:
         hidden = rnn.init_hidden()
         loss_total = 0
         acc = 0
-        # Get training data for this cycle
         for i, sequence in enumerate(Users):
 
             sequence = train_sequences[sequence]
@@ -85,10 +107,10 @@ try:
             targets = sequence[1:]
             target_variable = Variable(torch.LongTensor(targets))
 
-            hidden = repackage_hidden(hidden)
+            # hidden = repackage_hidden(hidden)
             rnn.zero_grad()
 
-            output, hidden = rnn(input_variable, hidden)
+            output = rnn(input_variable)
             loss = criterion(output, target_variable.contiguous().view(-1))
            
             val = (target_variable.data.view(-1).eq(torch.max(output, 1)[1].data).sum())
@@ -99,7 +121,7 @@ try:
             torch.nn.utils.clip_grad_norm(rnn.parameters(), clip)
             optimizer.step()
 
-            loss_total += loss.data[0]
+            loss_total += loss.data
 
         if epoch > 0:
             acc = acc/float(i+1)

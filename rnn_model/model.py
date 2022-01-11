@@ -14,19 +14,17 @@ class MovieRecommender(nn.Module):
         self.num_items = num_items
 
         self.embedding = nn.Embedding(num_items, hidden_size)
-        self.lstm = nn.GRU(hidden_size, hidden_size, number_of_layers, bidirectional=True)
+        self.lstm = nn.LSTM(num_items, self.hidden_size, batch_first=True, bidirectional=True)
         self.linear = nn.Linear(hidden_size * 2, num_items)
         self.init_weights()
 
-    def forward(self, x, hidden):
-
-        seq_len = len(x)
+    def forward(self, x,):
         
-        embedings = self.embedding(x).view(seq_len, 1, -1)
-        out, hidden = self.lstm(embedings, hidden)
-        out = out.contiguous().view(out.size(0)*out.size(1), out.size(2))
+        embedings = self.embedding(x)
+        out, _ = self.lstm(embedings)
+        # out = out.contiguous().view(out.size(0)*out.size(1), out.size(2))
         out = self.linear(out)
-        return out, hidden
+        return out
 
     def init_weights(self):
         initrange = 0.1
