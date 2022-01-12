@@ -82,7 +82,7 @@ def main():
 
 	device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-	model = RNNModel()
+	model = RNNModel( nb_movies, MOVIES_EMBEDDING_DIM, HIDDEN_SIZE)
 	model=model.to(device)
 	criterion = nn.MSELoss()
 	optimizer = optim.Adam(model.parameters(),lr=0.05,weight_decay=0.5)
