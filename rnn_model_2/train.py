@@ -1,5 +1,5 @@
 from config import *
-import pands as pd
+import pandas as pd
 import numpy as np
 from utils import *
 import torch
