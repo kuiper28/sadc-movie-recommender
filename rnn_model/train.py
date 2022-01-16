@@ -16,7 +16,6 @@ def train(model, nb_users, nb_movies, training_set, test_set, device, criterion,
 	for epoch in range(1,EPOCHS+1):
 		train_loss = 0
 		s = 0. 
-		# torch.autograd.set_detect_anomaly(True)
 		total_rmse = 0
 		for id_user in range(nb_users):
 			input = Variable(training_set[id_user,:]).unsqueeze(0)
@@ -24,7 +23,6 @@ def train(model, nb_users, nb_movies, training_set, test_set, device, criterion,
 			input=input.to(device)
 			target = input.clone() 
 			target=target.to(device)
-			# model.zero_grad()
 			if torch.sum(target.data > 0) > 0:
 				output = model(input)
 				output=output.to(device)
@@ -32,17 +30,15 @@ def train(model, nb_users, nb_movies, training_set, test_set, device, criterion,
 				output[target == 0] = 0
 				loss = criterion(output, target)
 				loss.backward()
-				# print("Size: ", output.shape)
-				# mean_corrector = nb_movies/float(torch.sum(target.data > 0) + 1e-10)
-				# train_loss += np.sqrt(loss.item()*mean_corrector)
 				train_loss += loss.item()
 				s+=1
 				optimizer.step()
-				# print("Target", target)
-				# print("Output", output)
-				rmse = np.sqrt(mean_squared_error(((target.squeeze(1)).squeeze(0)).reshape(-1).tolist(), ((output.squeeze(1)).squeeze(0)).reshape(-1).tolist()))
+				target_list = ((target.squeeze(1)).squeeze(0)).reshape(-1).tolist()
+				target_list = [value for value in target_list if value != 0]
+				output_list = ((output.squeeze(1)).squeeze(0)).reshape(-1).tolist()
+				output_list = [value for value in output_list if value != 0]
+				rmse = np.sqrt(mean_squared_error(target_list, output_list))
 				total_rmse += rmse
-				# print("RMSE: ", rmse)
 		print("Total rmse: ", total_rmse)
 		print("Rmse value: {:.3f}".format(total_rmse/s))
 		print("Traget: ", target[0].reshape(-1).tolist())
@@ -51,7 +47,7 @@ def train(model, nb_users, nb_movies, training_set, test_set, device, criterion,
 		eval_rmse = evaluation(model, nb_users, nb_movies, training_set, test_set, device, criterion)
 		print("Eval rmse: {:.5f}".format(eval_rmse))
 		if (eval_rmse < best_rmse):
-			torch.save(model.state_dict(), "model.bin")
+			torch.save(model.state_dict(), "rnn_model.bin")
 			print("Model saved!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 			best_rmse = eval_rmse	
 	
@@ -73,7 +69,11 @@ def evaluation(model, nb_users, nb_movies, training_set, test_set, device, crite
 			output[target == 0] = 0
 			pred_loss = criterion(output, target)
 			test_loss += pred_loss.item()
-			rmse = np.sqrt(mean_squared_error(((target.squeeze(1)).squeeze(0)).reshape(-1).tolist(), ((output.squeeze(1)).squeeze(0)).reshape(-1).tolist()))
+			target_list = ((target.squeeze(1)).squeeze(0)).reshape(-1).tolist()
+			target_list = [value for value in target_list if value != 0]
+			output_list = ((output.squeeze(1)).squeeze(0)).reshape(-1).tolist()
+			output_list = [value for value in output_list if value != 0]
+			rmse = np.sqrt(mean_squared_error(target_list, output_list))
 			total_rmse += rmse
 	print('test loss: '+ str(test_loss/s))
 	return total_rmse/s
@@ -90,7 +90,6 @@ def predict_top_k_movies(model, user_id, dataset, movies, k, device):
     output_list = [e for e in output_list if e not in ignore_movies]
     top_k_positions = sorted(range(len(output_list)), key = lambda sub: output_list[sub])[-k:]
     positions = [list(movies[0]).index(value+1) for value in top_k_positions]
-    print([movies[1][index] for index in positions])
     return [movies[1][index] for index in positions]
 
 

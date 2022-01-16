@@ -11,6 +11,7 @@ from sklearn.decomposition import NMF
 import altair as alt
 import plotly.figure_factory as ff
 import matplotlib.pyplot as plt
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 def local_css(file_name):
@@ -58,6 +59,21 @@ def create_rating_matrix(X, y, dim):
   M = M[1:,1:]
   M = np.asarray(M)
   return M
+
+def make_recommendation_for_newuser(item_sim, item_idx, movies, k=5):
+    similar_items_df = pd.DataFrame(item_sim).iloc[item_idx, :] 
+    similar_items_df = pd.concat([similar_items_df, movies], axis=1)  
+    similar_items_df.columns = ['similarity','title']
+    similar_items_df = similar_items_df.sort_values(by='similarity',ascending=False)
+
+    print('Recommended movies for a new user (without rating history), currently looking at movie:', similar_items_df.iloc[0]['title'])
+    print(similar_items_df[1:k+1])
+    return(similar_items_df[1:k+1])     
+
+# item_sim = cosine_similarity(H)                     
+# make_recommendation_for_newuser(item_sim, item_idx=1, k=5)
+# make_recommendation_for_newuser(item_sim, item_idx=20, k=5)
+# make_recommendation_for_newuser(item_sim, item_idx=500, k=5)
 
 def getPredictionForSpecificUser(X,y,dim, movies):
 	ratings = view_all_ratings(st.session_state.user)
@@ -114,7 +130,7 @@ def load_model_and_get_predictions(X, y, dim):
   P = H.dot(W.T).T
   P[P > 5] = 5.                   
   P[P < 1] = 1.
-  return P
+  return P, H
 
 @st.cache
 def make_recommendation_for_an_existing_user(initial_rating_matrix, predicted_rating_matrix, movies, user_idx, k=10):
@@ -197,20 +213,32 @@ def try_login(username, password):
 
 def run_app(username, X, y, dim, movies):
 	st.success("Logged In as {}".format(username))
+	movies_by_username = view_all_movies(username)
+	print(movies_by_username)
+	if (len(movies_by_username) != 0):
+		if st.checkbox("Make movie recommendations", key=3):
 
-	if st.checkbox("Make movie recommendations", key=3):
+			# getPredictionForSpecificUser()
+			predicted_rating_matrix, H = load_model_and_get_predictions(X, y, dim)
+			initial_rating_matrix = create_rating_matrix(X,y,dim)
 
-		# getPredictionForSpecificUser()
-		predicted_rating_matrix = load_model_and_get_predictions(X, y, dim)
-		initial_rating_matrix = create_rating_matrix(X,y,dim)
-
-		st.subheader("Movie recommendations")
-		recommended_movies = make_recommendation_for_an_existing_user(initial_rating_matrix, predicted_rating_matrix, movies, user_idx=int(username[-1]), k = 20)
-		clean_db = pd.DataFrame(recommended_movies,columns=["title"])
-		st.table(clean_db)
-
-	if st.checkbox("Make movie recommendations for new user", key=4):
-		getPredictionForSpecificUser(X,y,dim, movies)
+			st.subheader("Movie recommendations")
+			recommended_movies = make_recommendation_for_an_existing_user(initial_rating_matrix, predicted_rating_matrix, movies, user_idx=int(username[-1]), k = 20)
+			clean_db = pd.DataFrame(recommended_movies,columns=["title"])
+			st.table(clean_db)
+	else:
+		if st.checkbox("Make movie recommendations for new user", key=4):
+			st.header("Select the movie you are currently watching!")
+			option = select_movie_currently_watching()
+			print(option)
+			if (option != None):
+				predicted_rating_matrix, H = load_model_and_get_predictions(X, y, dim)
+				item_sim = cosine_similarity(H)
+				st.subheader("Movie recommendations")
+				recommended_movies = make_recommendation_for_newuser(item_sim, option, movies, 5)
+				clean_db = pd.DataFrame(recommended_movies,columns=["title"])
+				st.table(clean_db)
+		# getPredictionForSpecificUser(X,y,dim, movies)
 
 	st.header("Add movie ratings")
 	addNewMovie()
@@ -245,6 +273,19 @@ def addNewMovie():
 		st.success("Added movie in list")
 
 		add_ratings(st.session_state.user, new_movie_id, new_rating)
+
+def get_movie_id_from_list(movies, movie):
+	for m in movies:
+		if (m[0] == movie):
+			return m[1]
+	return 0
+
+def select_movie_currently_watching():
+    all_movies = getAllMovies()
+    movies_list = [movie[0] for movie in all_movies]
+    option = st.selectbox("Movies!", movies_list)
+    return get_movie_id_from_list(all_movies, option)
+    
 
 def deleteExistingMovie():
 	col1, col2= st.columns(2)
