@@ -1,37 +1,19 @@
-import torch
 import torch.nn as nn
-from torch.autograd import Variable
-import torch.nn.functional as F
-import torch.nn.utils
-import numpy as np
 
-class MovieRecommender(nn.Module):
-    def __init__(self, num_items, hidden_size, number_of_layers):
-
-        super(MovieRecommender, self).__init__()
+class RNNModel(nn.Module):
+    def __init__(self, nb_movies, movies_embedding_dim, hidden_size):
+        super(RNNModel,self).__init__()
+        self.nb_movies = nb_movies
+        self.movies_embedding_dim = movies_embedding_dim
         self.hidden_size = hidden_size
-        self.number_of_layers = number_of_layers
-        self.num_items = num_items
-
-        self.embedding = nn.Embedding(num_items, hidden_size)
-        self.lstm = nn.LSTM(num_items, self.hidden_size, batch_first=True, bidirectional=True)
-        self.linear = nn.Linear(hidden_size * 2, num_items)
-        self.init_weights()
-
-    def forward(self, x,):
-        
-        embedings = self.embedding(x)
-        out, _ = self.lstm(embedings)
-        # out = out.contiguous().view(out.size(0)*out.size(1), out.size(2))
-        out = self.linear(out)
+        self.linear1 = nn.Linear(nb_movies, movies_embedding_dim)
+        self.lstm = nn.LSTM(movies_embedding_dim, hidden_size, batch_first=False)
+        self.dropout = nn.Dropout(0.2)
+        self.linear2 = nn.Linear(hidden_size, nb_movies)
+        self.activation = nn.ReLU()
+    def forward(self, x):
+        embds = self.activation(self.linear1(x))
+        out, _ = self.lstm(embds)
+        out = self.dropout(out)
+        out = self.linear2(out)
         return out
-
-    def init_weights(self):
-        initrange = 0.1
-        self.embedding.weight.data.uniform_(-initrange, initrange)
-        self.linear.weight.data.uniform_(-initrange, initrange)
-
-    def init_hidden(self):
-        hidden = Variable(torch.zeros(self.number_of_layers*2, 1, self.hidden_size))
-        hidden.cuda()
-        return hidden
