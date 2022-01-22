@@ -333,7 +333,7 @@ logged_in = False
 def main():
     # prepare_user(1)
 	(X, y, dim, movies) = readData()
-
+	prepare_user(1)
 	st.title("Movie Recommender")
 	if "user" not in st.session_state:
 		# Will store the currently logged user
