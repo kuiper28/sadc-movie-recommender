@@ -9,10 +9,11 @@ from scipy.sparse import csr_matrix
 from sklearn.decomposition import NMF
 
 import altair as alt
-import plotly.figure_factory as ff
+# import plotly.figure_factory as ff
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity
 import torch
+from neural_colaborative_filtering.model import NCRF
 
 
 def local_css(file_name):
@@ -212,34 +213,40 @@ def try_login(username, password):
 		st.warning("bad")
 		st.warning("Incorrect Username/Password")
 
-def run_app(username, X, y, dim, movies):
+def run_app(username, X, y, dim, movies, deep=False):
 	st.success("Logged In as {}".format(username))
 	movies_by_username = view_all_movies(username)
 	print(movies_by_username)
-	if (len(movies_by_username) != 0):
-		if st.checkbox("Make movie recommendations", key=3):
-
-			# getPredictionForSpecificUser()
-			predicted_rating_matrix, H = load_model_and_get_predictions(X, y, dim)
-			initial_rating_matrix = create_rating_matrix(X,y,dim)
-
-			st.subheader("Movie recommendations")
-			recommended_movies = make_recommendation_for_an_existing_user(initial_rating_matrix, predicted_rating_matrix, movies, user_idx=int(username[-1]), k = 20)
-			clean_db = pd.DataFrame(recommended_movies,columns=["title"])
-			st.table(clean_db)
+	if (deep == True):
+		st.subheader("Movie recommendations")
+		recommended_movies = make_prediction_ncf(int(username[-1]), 5, movies)#make_recommendation_for_an_existing_user(initial_rating_matrix, predicted_rating_matrix, movies, user_idx=int(username[-1]), k = 20)
+		clean_db = pd.DataFrame(recommended_movies,columns=["title"])
+		st.table(clean_db)
 	else:
-		if st.checkbox("Make movie recommendations for new user", key=4):
-			st.header("Select the movie you are currently watching!")
-			option = select_movie_currently_watching()
-			print(option)
-			if (option != None):
+		if (len(movies_by_username) != 0):
+			if st.checkbox("Make movie recommendations", key=3):
+
+				# getPredictionForSpecificUser()
 				predicted_rating_matrix, H = load_model_and_get_predictions(X, y, dim)
-				item_sim = cosine_similarity(H)
+				initial_rating_matrix = create_rating_matrix(X,y,dim)
+
 				st.subheader("Movie recommendations")
-				recommended_movies = make_recommendation_for_newuser(item_sim, option, movies, 5)
+				recommended_movies = make_recommendation_for_an_existing_user(initial_rating_matrix, predicted_rating_matrix, movies, user_idx=int(username[-1]), k = 20)
 				clean_db = pd.DataFrame(recommended_movies,columns=["title"])
 				st.table(clean_db)
-		# getPredictionForSpecificUser(X,y,dim, movies)
+		else:
+			if st.checkbox("Make movie recommendations for new user", key=4):
+				st.header("Select the movie you are currently watching!")
+				option = select_movie_currently_watching()
+				print(option)
+				if (option != None):
+					predicted_rating_matrix, H = load_model_and_get_predictions(X, y, dim)
+					item_sim = cosine_similarity(H)
+					st.subheader("Movie recommendations")
+					recommended_movies = make_recommendation_for_newuser(item_sim, option, movies, 5)
+					clean_db = pd.DataFrame(recommended_movies,columns=["title"])
+					st.table(clean_db)
+			# getPredictionForSpecificUser(X,y,dim, movies)
 
 	st.header("Add movie ratings")
 	addNewMovie()
@@ -310,7 +317,7 @@ def get_user_movies_association(user_id, items, movies):
   for item in items:
     if (item[0] == (user_id - 1)):
       users_movies_association_excluded.append(item)
-  print(users_movies_association_excluded)
+#   print(users_movies_association_excluded)
   users_movies_association_excluded = [arr.tolist() for arr in users_movies_association_excluded]
   
   for movie in movies:
@@ -324,16 +331,31 @@ def prepare_user(user_id):
   movies_data = pd.read_csv("ml-1m/ratings.dat", sep="::", engine='python', header=None).to_numpy()[:, :3]
   items = ratings_data[:, :2].astype(np.int) - 1
   items = get_user_movies_association(user_id, items, movies_data[:, 0])
-  print(torch.tensor(items).to("cuda"))
+#   print(torch.tensor(items).to("cuda"))
   return items
 
+def make_prediction_ncf(user_id, k, movies):
+	model_test = NCRF([6040,3952], embed_dim=16, mlp_dims=(16, 16), dropout=0.5,
+                                            user_idx=[0],
+                                            item_idx=[1])
+	model_test.load_state_dict(torch.load("model_ncf.bin"))
+	fields = prepare_user(user_id)
+	model_test.cuda()
+	y = model_test(fields)
+	y = y.tolist()
+	y = np.array(y)
+	indices = (-y).argsort()[:k]
+	# movies.iloc[indices]
+	return movies.iloc[indices]
 
 logged_in = False
 
 def main():
     # prepare_user(1)
 	(X, y, dim, movies) = readData()
-	prepare_user(1)
+	# print("asdadddddddddddddddddddddddddddd")
+	# prepare_user(1)
+	# make_prediction_ncf()
 	st.title("Movie Recommender")
 	if "user" not in st.session_state:
 		# Will store the currently logged user
@@ -350,7 +372,7 @@ def main():
 		signup_func()
 
 	if st.session_state.user and logged_in:
-		run_app(st.session_state.user, X, y, dim, movies)
+		run_app(st.session_state.user, X, y, dim, movies, deep=True)
 	else:
 		st.warning("Please log in first.")
 
