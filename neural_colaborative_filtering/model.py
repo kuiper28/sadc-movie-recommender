@@ -1,11 +1,24 @@
 import torch
-import torch.nn.Module as Module
-import torch.nn.Embedding as Embedding
-import torch.nn.Linear as Linear
-import torch.nn.BatchNorm1d as BatchNorm1d
-import torch.nn.ReLU as ReLU
-import torch.nn.Dropout as Dropout
-import torch.nn.Sequential as Sequential
+from torch.nn import Module, Embedding, Linear, BatchNorm1d, ReLU, Dropout, Sequential
+import numpy as np
+
+class MLP(torch.nn.Module):
+
+    def __init__(self, input_dim, embed_dims, dropout):
+        super().__init__()
+        layers = list()
+        for dim in embed_dims:
+            # print(embed_dim)
+            layers.append(Linear(input_dim, dim))
+            layers.append(BatchNorm1d(dim))
+            layers.append(ReLU())
+            layers.append(Dropout(p=dropout))
+            input_dim = dim
+        self.mlp = Sequential(*layers)
+
+    def forward(self, x):
+        return self.mlp(x)
+
 
 class NCRF(Module):
 
@@ -13,18 +26,10 @@ class NCRF(Module):
         super().__init__()
         self.user_idx = user_idx
         self.item_idx = item_idx
+        print("eeeeee", embed_dim)
         self.embedding = Embedding(sum(field_dims), embed_dim)
         self.embed_output_dim = len(field_dims) * embed_dim
-        self.layers_list = list()
-        self.input_dim = 0
-        for dim in mlp_dims:
-            self.layers_list.append(Linear(self.embed_output_dim, dim))
-            self.layers_list.append(BatchNorm1d(dim))
-            self.layers_list.append(ReLU())
-            self.layers_list.append(Dropout(dropout))
-            self.input_dim = dim
-        self.layers_list.append(Linear(self.input_dim, 1))
-        self.sequential = Sequential(*self.layers_list)
+        self.sequential = MLP(self.embed_output_dim, mlp_dims, dropout)
         self.fc = Linear(mlp_dims[-1] + embed_dim, 1)
 
     def forward(self, x):

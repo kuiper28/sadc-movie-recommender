@@ -12,6 +12,7 @@ import altair as alt
 import plotly.figure_factory as ff
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity
+import torch
 
 
 def local_css(file_name):
@@ -302,9 +303,35 @@ def logout():
 	logged_in = False
 	st.session_state.user = None
 
+
+def get_user_movies_association(user_id, items, movies):
+  users_movies_association_excluded = list()
+  users_movies_association = list()
+  for item in items:
+    if (item[0] == (user_id - 1)):
+      users_movies_association_excluded.append(item)
+  print(users_movies_association_excluded)
+  users_movies_association_excluded = [arr.tolist() for arr in users_movies_association_excluded]
+  
+  for movie in movies:
+    if (not [(user_id-1), (movie-1)] in users_movies_association_excluded):
+      users_movies_association.append([user_id-1, movie-1])
+  return users_movies_association
+
+
+def prepare_user(user_id):
+  ratings_data = pd.read_csv("ml-1m/ratings.dat", sep="::", engine='python', header=None).to_numpy()[:, :3]
+  movies_data = pd.read_csv("ml-1m/ratings.dat", sep="::", engine='python', header=None).to_numpy()[:, :3]
+  items = ratings_data[:, :2].astype(np.int) - 1
+  items = get_user_movies_association(user_id, items, movies_data[:, 0])
+  print(torch.tensor(items).to("cuda"))
+  return items
+
+
 logged_in = False
 
 def main():
+    # prepare_user(1)
 	(X, y, dim, movies) = readData()
 
 	st.title("Movie Recommender")

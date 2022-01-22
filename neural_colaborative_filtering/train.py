@@ -55,9 +55,13 @@ def main(dataset_path, epoch, learning_rate,
     test_data_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=8)
 
     field_dims = dataset.field_dims
+    print("aaaaaaaaaaaaa", dataset.field_dims)
+    print("aaaaaaaaaaaaa", dataset.user_idx)
+    print("aaaaaaaaaaaaa", dataset.item_idx)
     model = NCRF(field_dims, embed_dim=16, mlp_dims=(16, 16), dropout=0.5,
                                             user_idx=dataset.user_idx,
                                             item_idx=dataset.item_idx)
+    model.cuda()
     criterion = torch.nn.BCELoss()
     optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     
@@ -75,6 +79,7 @@ def main(dataset_path, epoch, learning_rate,
                                             user_idx=dataset.user_idx,
                                             item_idx=dataset.item_idx)
     model_test.load_state_dict(torch.load(MODEL_PATH))
+    model_test.cuda()
     test_auc = test(model_test, test_data_loader, device)
     print('test auc:', test_auc)
 
