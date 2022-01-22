@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
-import torch.utils.data.Dataset as Datset
+import torch.utils.data
 
 
-class Dataset_REC(Datset):
+class Dataset_REC(torch.utils.data.Dataset):
 
     def __init__(self, dataset_path, sep='::', engine='python', header=None):
         data = pd.read_csv(dataset_path, sep=sep, engine=engine, header=header).to_numpy()[:, :3]
