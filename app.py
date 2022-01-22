@@ -220,25 +220,34 @@ def run_app_2(X, y, dim, movies, deep=False):
 	print(movies_by_username)
 	if (deep == True):
 		# st.subheader("Movie recommendations")
-		recommended_movies = make_prediction_ncf(1, 5, movies)#make_recommendation_for_an_existing_user(initial_rating_matrix, predicted_rating_matrix, movies, user_idx=int(username[-1]), k = 20)
+		recommended_movies = make_prediction_ncf(1, 5, movies)
 		print("Recommended Movies ", recommended_movies)
 		clean_db = pd.DataFrame(recommended_movies,columns=["title"])
 		# st.table(clean_db)
 
+def run_app_ncf(username, X, y, dim, movies, deep=False):
+	st.success("Logged In as {}".format(username))
+	movies_by_username = view_all_movies(username)
+	print(movies_by_username)
+	if (deep == True):
+		st.subheader("Movie recommendations")
+		recommended_movies = make_prediction_ncf(int(username[-1]), 5, movies)
+		clean_db = pd.DataFrame(recommended_movies,columns=["title"])
+		st.table(clean_db)
+		
 def run_app(username, X, y, dim, movies, deep=False):
 	st.success("Logged In as {}".format(username))
 	movies_by_username = view_all_movies(username)
 	print(movies_by_username)
 	if (deep == True):
 		st.subheader("Movie recommendations")
-		recommended_movies = make_prediction_ncf(int(username[-1]), 5, movies)#make_recommendation_for_an_existing_user(initial_rating_matrix, predicted_rating_matrix, movies, user_idx=int(username[-1]), k = 20)
+		recommended_movies = make_prediction_ncf(int(username[-1]), 5, movies)
 		clean_db = pd.DataFrame(recommended_movies,columns=["title"])
 		st.table(clean_db)
 	else:
 		if (len(movies_by_username) != 0):
 			if st.checkbox("Make movie recommendations", key=3):
 
-				# getPredictionForSpecificUser()
 				predicted_rating_matrix, H = load_model_and_get_predictions(X, y, dim)
 				initial_rating_matrix = create_rating_matrix(X,y,dim)
 
@@ -354,6 +363,8 @@ def make_prediction_ncf(user_id, k, movies):
 	model_test.cuda()
 	y = model_test(fields)
 	y = y.tolist()
+	y.sort(reverse=True)
+	print("Sorted y: ", y[:10])
 	y = np.array(y)
 	indices = (-y).argsort()[:k]
 	return movies.iloc[indices]
@@ -383,10 +394,20 @@ def main():
 	elif choice =="SignUp":
 		signup_func()
 
-	if st.session_state.user and logged_in:
-		run_app(st.session_state.user, X, y, dim, movies, deep=True)
+	page = st.selectbox("Choose your page", ["Matrix Factorization Model", "Neural Collaborative Filtering"])
+	if page == "Matrix Factorization Model":
+		print("First Page")
+		if st.session_state.user and logged_in:
+			run_app(st.session_state.user, X, y, dim, movies, deep=True)
+		else:
+			st.warning("Please log in first.")
+		# asdas
 	else:
-		st.warning("Please log in first.")
+		print("Second Page")
+		if st.session_state.user and logged_in:
+			run_app_ncf(st.session_state.user, X, y, dim, movies, deep=True)
+		else:
+			st.warning("Please log in first.")
 
 if __name__ == '__main__':
 	main()
