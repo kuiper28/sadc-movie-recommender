@@ -1,4 +1,4 @@
-from neural_colaborative_filtering.config import BATCH_SIZE, DATASET_PATH, DEVICE, EPOCH, LEARNING_RATE, MODEL_PATH, WEIGHT_DECAY
+from config import BATCH_SIZE, DATASET_PATH, DEVICE, EPOCH, LEARNING_RATE, MODEL_PATH, WEIGHT_DECAY
 import torch
 import tqdm
 from sklearn.metrics import roc_auc_score
