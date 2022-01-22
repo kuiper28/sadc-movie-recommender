@@ -1,0 +1,8 @@
+DATASET_PATH = "ratings.dat"
+MODEL_NAME = "ncf"
+EPOCH = 20
+LEARNING_RATE = 0.001
+BATCH_SIZE = 512
+WEIGHT_DECAY = 1e-6
+DEVICE = "cuda"
+MODEL_PATH = "model.bin"
