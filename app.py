@@ -213,6 +213,18 @@ def try_login(username, password):
 		st.warning("bad")
 		st.warning("Incorrect Username/Password")
 
+
+def run_app_2(X, y, dim, movies, deep=False):
+	username = "username1"
+	movies_by_username = view_all_movies(username)
+	print(movies_by_username)
+	if (deep == True):
+		# st.subheader("Movie recommendations")
+		recommended_movies = make_prediction_ncf(1, 5, movies)#make_recommendation_for_an_existing_user(initial_rating_matrix, predicted_rating_matrix, movies, user_idx=int(username[-1]), k = 20)
+		print("Recommended Movies ", recommended_movies)
+		clean_db = pd.DataFrame(recommended_movies,columns=["title"])
+		# st.table(clean_db)
+
 def run_app(username, X, y, dim, movies, deep=False):
 	st.success("Logged In as {}".format(username))
 	movies_by_username = view_all_movies(username)
@@ -317,22 +329,21 @@ def get_user_movies_association(user_id, items, movies):
   for item in items:
     if (item[0] == (user_id - 1)):
       users_movies_association_excluded.append(item)
-#   print(users_movies_association_excluded)
   users_movies_association_excluded = [arr.tolist() for arr in users_movies_association_excluded]
   
   for movie in movies:
     if (not [(user_id-1), (movie-1)] in users_movies_association_excluded):
       users_movies_association.append([user_id-1, movie-1])
+
   return users_movies_association
 
 
 def prepare_user(user_id):
   ratings_data = pd.read_csv("ml-1m/ratings.dat", sep="::", engine='python', header=None).to_numpy()[:, :3]
-  movies_data = pd.read_csv("ml-1m/ratings.dat", sep="::", engine='python', header=None).to_numpy()[:, :3]
+  movies_data = pd.read_csv("ml-1m/movies.dat", sep="::", engine='python', header=None).to_numpy()[:, :3]
   items = ratings_data[:, :2].astype(np.int) - 1
   items = get_user_movies_association(user_id, items, movies_data[:, 0])
-#   print(torch.tensor(items).to("cuda"))
-  return items
+  return torch.tensor(items).to("cuda")
 
 def make_prediction_ncf(user_id, k, movies):
 	model_test = NCRF([6040,3952], embed_dim=16, mlp_dims=(16, 16), dropout=0.5,
@@ -345,7 +356,6 @@ def make_prediction_ncf(user_id, k, movies):
 	y = y.tolist()
 	y = np.array(y)
 	indices = (-y).argsort()[:k]
-	# movies.iloc[indices]
 	return movies.iloc[indices]
 
 logged_in = False
@@ -360,6 +370,8 @@ def main():
 	if "user" not in st.session_state:
 		# Will store the currently logged user
 		st.session_state.user = None
+
+	# run_app_2(X, y, dim, movies, deep=True)
 
 	# The database is already populated. See data.db.
 	# populate_databse()
