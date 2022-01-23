@@ -263,7 +263,7 @@ def run_app_lstm(username, X, y, dim, movies):
 		pred_titles = []
 		for pred in user_predictions:
 			# print(get_movie_name(pred))
-			pred_titles.append(get_movie_name(pred))
+			pred_titles.append(get_movie_name(pred)[0])
 
 		df = pd.DataFrame(pred_titles)
 
