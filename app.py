@@ -220,53 +220,62 @@ def run_app_2(X, y, dim, movies, deep=False):
 	print(movies_by_username)
 	if (deep == True):
 		# st.subheader("Movie recommendations")
-		recommended_movies = make_prediction_ncf(1, 5, movies)
+		recommended_movies = make_prediction_ncf(1, 10, movies)
 		print("Recommended Movies ", recommended_movies)
 		clean_db = pd.DataFrame(recommended_movies,columns=["title"])
 		# st.table(clean_db)
 
-def run_app_ncf(username, X, y, dim, movies, deep=False):
+def run_app_ncf(username, X, y, dim, movies):
 	st.success("Logged In as {}".format(username))
 	movies_by_username = view_all_movies(username)
 	print(movies_by_username)
-	if (deep == True):
+	if (len(movies_by_username) != 0):
 		st.subheader("Movie recommendations")
-		recommended_movies = make_prediction_ncf(int(username[-1]), 5, movies)
+		recommended_movies = make_prediction_ncf(int(username[-1]), 10, movies)
 		clean_db = pd.DataFrame(recommended_movies,columns=["title"])
 		st.table(clean_db)
+	
+	st.header("Add movie ratings")
+	addNewMovie()
+
+	st.header("Remove movie ratings")
+	deleteExistingMovie()
+
+	st.subheader("My watched movies")
+	users_result = view_all_movies(username)
+	clean_db = pd.DataFrame(users_result, columns=["name", "rating"])
+	user_result_by_rating = view_all_movies_group_by_rating(username)
+	user_df_group = pd.DataFrame(user_result_by_rating, columns=["rating", "Number of movies"])
+	st.table(clean_db)
+	st.bar_chart(user_df_group)
+
 		
-def run_app(username, X, y, dim, movies, deep=False):
+def run_app(username, X, y, dim, movies):
 	st.success("Logged In as {}".format(username))
 	movies_by_username = view_all_movies(username)
 	print(movies_by_username)
-	if (deep == True):
-		st.subheader("Movie recommendations")
-		recommended_movies = make_prediction_ncf(int(username[-1]), 5, movies)
-		clean_db = pd.DataFrame(recommended_movies,columns=["title"])
-		st.table(clean_db)
+	if (len(movies_by_username) != 0):
+		if st.checkbox("Make movie recommendations", key=3):
+
+			predicted_rating_matrix, H = load_model_and_get_predictions(X, y, dim)
+			initial_rating_matrix = create_rating_matrix(X,y,dim)
+
+			st.subheader("Movie recommendations")
+			recommended_movies = make_recommendation_for_an_existing_user(initial_rating_matrix, predicted_rating_matrix, movies, user_idx=int(username[-1]), k = 10)
+			clean_db = pd.DataFrame(recommended_movies,columns=["title"])
+			st.table(clean_db)
 	else:
-		if (len(movies_by_username) != 0):
-			if st.checkbox("Make movie recommendations", key=3):
-
+		if st.checkbox("Make movie recommendations for new user", key=4):
+			st.header("Select the movie you are currently watching!")
+			option = select_movie_currently_watching()
+			print(option)
+			if (option != None):
 				predicted_rating_matrix, H = load_model_and_get_predictions(X, y, dim)
-				initial_rating_matrix = create_rating_matrix(X,y,dim)
-
+				item_sim = cosine_similarity(H)
 				st.subheader("Movie recommendations")
-				recommended_movies = make_recommendation_for_an_existing_user(initial_rating_matrix, predicted_rating_matrix, movies, user_idx=int(username[-1]), k = 20)
+				recommended_movies = make_recommendation_for_newuser(item_sim, option, movies, 10)
 				clean_db = pd.DataFrame(recommended_movies,columns=["title"])
 				st.table(clean_db)
-		else:
-			if st.checkbox("Make movie recommendations for new user", key=4):
-				st.header("Select the movie you are currently watching!")
-				option = select_movie_currently_watching()
-				print(option)
-				if (option != None):
-					predicted_rating_matrix, H = load_model_and_get_predictions(X, y, dim)
-					item_sim = cosine_similarity(H)
-					st.subheader("Movie recommendations")
-					recommended_movies = make_recommendation_for_newuser(item_sim, option, movies, 5)
-					clean_db = pd.DataFrame(recommended_movies,columns=["title"])
-					st.table(clean_db)
 			# getPredictionForSpecificUser(X,y,dim, movies)
 
 	st.header("Add movie ratings")
@@ -333,40 +342,41 @@ def logout():
 
 
 def get_user_movies_association(user_id, items, movies):
-  users_movies_association_excluded = list()
   users_movies_association = list()
+  excluded_movies = list()
+
   for item in items:
     if (item[0] == (user_id - 1)):
-      users_movies_association_excluded.append(item)
-  users_movies_association_excluded = [arr.tolist() for arr in users_movies_association_excluded]
+    	excluded_movies.append(item[1])
   
   for movie in movies:
-    if (not [(user_id-1), (movie-1)] in users_movies_association_excluded):
       users_movies_association.append([user_id-1, movie-1])
-
-  return users_movies_association
+  return users_movies_association, excluded_movies
 
 
 def prepare_user(user_id):
   ratings_data = pd.read_csv("ml-1m/ratings.dat", sep="::", engine='python', header=None).to_numpy()[:, :3]
   movies_data = pd.read_csv("ml-1m/movies.dat", sep="::", engine='python', header=None).to_numpy()[:, :3]
   items = ratings_data[:, :2].astype(np.int) - 1
-  items = get_user_movies_association(user_id, items, movies_data[:, 0])
-  return torch.tensor(items).to("cuda")
+  items, excluded_movies = get_user_movies_association(user_id, items, movies_data[:, 0])
+  print(excluded_movies)
+  return torch.tensor(items).to("cuda"), excluded_movies
 
 def make_prediction_ncf(user_id, k, movies):
 	model_test = NCRF([6040,3952], embed_dim=16, mlp_dims=(16, 16), dropout=0.5,
                                             user_idx=[0],
                                             item_idx=[1])
 	model_test.load_state_dict(torch.load("model_ncf.bin"))
-	fields = prepare_user(user_id)
+	fields, excluded_movies = prepare_user(user_id)
 	model_test.cuda()
 	y = model_test(fields)
 	y = y.tolist()
-	y.sort(reverse=True)
-	print("Sorted y: ", y[:10])
+	for index in excluded_movies:
+		y.pop(index-1)
 	y = np.array(y)
 	indices = (-y).argsort()[:k]
+	indices = [index + 1 for index in indices]
+
 	return movies.iloc[indices]
 
 logged_in = False
@@ -394,18 +404,17 @@ def main():
 	elif choice =="SignUp":
 		signup_func()
 
-	page = st.selectbox("Choose your page", ["Matrix Factorization Model", "Neural Collaborative Filtering"])
+	page = st.selectbox("Choose your model", ["Matrix Factorization Model", "Neural Collaborative Filtering"])
 	if page == "Matrix Factorization Model":
 		print("First Page")
 		if st.session_state.user and logged_in:
-			run_app(st.session_state.user, X, y, dim, movies, deep=True)
+			run_app(st.session_state.user, X, y, dim, movies)
 		else:
 			st.warning("Please log in first.")
-		# asdas
 	else:
 		print("Second Page")
 		if st.session_state.user and logged_in:
-			run_app_ncf(st.session_state.user, X, y, dim, movies, deep=True)
+			run_app_ncf(st.session_state.user, X, y, dim, movies)
 		else:
 			st.warning("Please log in first.")
 

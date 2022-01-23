@@ -2,6 +2,7 @@ from config import BATCH_SIZE, DATASET_PATH, DEVICE, EPOCH, LEARNING_RATE, MODEL
 import torch
 import tqdm
 from sklearn.metrics import roc_auc_score
+from sklearn.metrics import mean_squared_error
 from torch.utils.data import DataLoader
 
 from dataset import Dataset_REC
@@ -35,7 +36,7 @@ def test(model, data_loader, device):
             targets.extend(target.tolist())
             predicts.extend(y.tolist())
 
-    return roc_auc_score(targets, predicts)
+    return mean_squared_error(targets, predicts)
 
 
 def main(dataset_path, epoch, learning_rate,
@@ -55,33 +56,33 @@ def main(dataset_path, epoch, learning_rate,
     test_data_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=8)
 
     field_dims = dataset.field_dims
-    print("aaaaaaaaaaaaa", dataset.field_dims)
-    print("aaaaaaaaaaaaa", dataset.user_idx)
-    print("aaaaaaaaaaaaa", dataset.item_idx)
+    # print("aaaaaaaaaaaaa", dataset.field_dims)
+    # print("aaaaaaaaaaaaa", dataset.user_idx)
+    # print("aaaaaaaaaaaaa", dataset.item_idx)
     model = NCRF(field_dims, embed_dim=16, mlp_dims=(16, 16), dropout=0.5,
                                             user_idx=dataset.user_idx,
                                             item_idx=dataset.item_idx)
     model.cuda()
-    criterion = torch.nn.BCELoss()
+    criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     
-    best_valid_auc = -100
+    best_valid_mse = 100
     for epoch_i in range(epoch):
         train(model, optimizer, train_data_loader, criterion, device)
-        valid_auc = test(model, valid_data_loader, device)
-        if (valid_auc > best_valid_auc):
+        valid_mse = test(model, valid_data_loader, device)
+        if (valid_mse < best_valid_mse):
             torch.save(model.state_dict(), MODEL_PATH)
-            best_valid_auc = valid_auc
+            best_valid_mse = valid_mse
             print("Model saved!!!")
-        print('epoch:', epoch_i, 'validation: auc:', valid_auc)
+        print('epoch:', epoch_i, 'validation: MSE:', valid_mse)
     
     model_test = NCRF(field_dims, embed_dim=16, mlp_dims=(16, 16), dropout=0.5,
                                             user_idx=dataset.user_idx,
                                             item_idx=dataset.item_idx)
     model_test.load_state_dict(torch.load(MODEL_PATH))
     model_test.cuda()
-    test_auc = test(model_test, test_data_loader, device)
-    print('test auc:', test_auc)
+    test_mse = test(model_test, test_data_loader, device)
+    print('test MSE:', test_mse)
 
 
 if __name__ == '__main__':

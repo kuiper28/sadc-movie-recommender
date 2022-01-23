@@ -10,7 +10,6 @@ class MLP(torch.nn.Module):
         for dim in embed_dims:
             # print(embed_dim)
             layers.append(Linear(input_dim, dim))
-            layers.append(BatchNorm1d(dim))
             layers.append(ReLU())
             layers.append(Dropout(p=dropout))
             input_dim = dim
@@ -26,7 +25,6 @@ class NCRF(Module):
         super().__init__()
         self.user_idx = user_idx
         self.item_idx = item_idx
-        print("eeeeee", embed_dim)
         self.embedding = Embedding(sum(field_dims), embed_dim)
         self.embed_output_dim = len(field_dims) * embed_dim
         self.sequential = MLP(self.embed_output_dim, mlp_dims, dropout)
