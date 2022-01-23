@@ -221,7 +221,7 @@ def run_app_2(X, y, dim, movies, deep=False):
 	if (deep == True):
 		# st.subheader("Movie recommendations")
 		recommended_movies = make_prediction_ncf(1, 10, movies)
-		print("Recommended Movies ", recommended_movies)
+		# print("Recommended Movies ", recommended_movies)
 		clean_db = pd.DataFrame(recommended_movies,columns=["title"])
 		# st.table(clean_db)
 
@@ -251,7 +251,7 @@ def run_app_ncf(username, X, y, dim, movies):
 		
 def run_app(username, X, y, dim, movies):
 	movies_by_username = view_all_movies(username)
-	print(movies_by_username)
+	# print(movies_by_username)
 	if (len(movies_by_username) != 0):
 		if st.checkbox("Make movie recommendations", key=3):
 
@@ -266,7 +266,7 @@ def run_app(username, X, y, dim, movies):
 		if st.checkbox("Make movie recommendations for new user", key=4):
 			st.header("Select the movie you are currently watching!")
 			option = select_movie_currently_watching()
-			print(option)
+			# print(option)
 			if (option != None):
 				predicted_rating_matrix, H = load_model_and_get_predictions(X, y, dim)
 				item_sim = cosine_similarity(H)
@@ -352,7 +352,7 @@ def prepare_user(user_id):
   movies_data = pd.read_csv("ml-1m/movies.dat", sep="::", engine='python', header=None).to_numpy()[:, :3]
   items = ratings_data[:, :2].astype(np.int) - 1
   items, excluded_movies = get_user_movies_association(user_id, items, movies_data[:, 0])
-  print(excluded_movies)
+#   print(excluded_movies)
   return torch.tensor(items).to("cuda"), excluded_movies
 
 def make_prediction_ncf(user_id, k, movies):
