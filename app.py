@@ -334,7 +334,7 @@ def movieTable(username):
 	user_result_by_rating = view_all_movies_group_by_rating(username)
 	user_df_group = pd.DataFrame(user_result_by_rating, columns=["rating", "Number of movies"])
 	st.table(clean_db)
-	# st.bar_chart(user_df_group)
+	st.bar_chart(user_df_group)
 
 def format(df, id):
 	temp = df[df["id"] == id]
