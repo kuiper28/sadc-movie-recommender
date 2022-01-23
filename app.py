@@ -7,6 +7,12 @@ from streamlit.type_util import Key
 from data_base import *
 from scipy.sparse import csr_matrix
 from sklearn.decomposition import NMF
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.models import load_model
+from keras.models import Sequential
+from keras.layers import LSTM,Dense,Embedding,RepeatVector,TimeDistributed,Activation,Dropout
+
 
 import altair as alt
 # import plotly.figure_factory as ff
@@ -225,6 +231,56 @@ def run_app_2(X, y, dim, movies, deep=False):
 		clean_db = pd.DataFrame(recommended_movies,columns=["title"])
 		# st.table(clean_db)
 
+def run_app_lstm(username, X, y, dim, movies):
+	tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+	model = create_model(3953, 3953, 128, 128, 64)
+	model.load_weights('./lstm_cf_weights/checkpoint')
+	all_movies_db = view_all_movie_ids(username)
+
+	if st.checkbox("Make movie recommendations", key=4) and len(all_movies_db) > 0:
+		
+		user_movies = [movie[0] for movie in all_movies_db]
+		if len(user_movies) > 128:
+			user_movies = user_movies[-128:]
+		
+		user_movies += [0] * (128 - len(user_movies))
+		
+		model_input = np.array(user_movies)
+		count = np.count_nonzero(model_input)
+		source = model_input.reshape((1, model_input.shape[0]))
+		prediction = model.predict(source, verbose=0)[0]
+		user_predictions = np.argpartition(prediction[count-1], -10)[-10:]
+		user_predictions = user_predictions.tolist()
+
+		to_remove = []
+		for pred in user_predictions:
+			if pred in user_movies:
+				to_remove.append(pred)
+
+		for remove in to_remove:
+			user_predictions.remove(remove)
+
+		pred_titles = []
+		for pred in user_predictions:
+			# print(get_movie_name(pred))
+			pred_titles.append(get_movie_name(pred))
+
+		df = pd.DataFrame(pred_titles)
+
+		st.table(df)
+
+
+
+def create_model(src_vocab, tar_vocab, src_timesteps, tar_timesteps, n_units):
+    # Create the model
+    model = Sequential()
+    model.add(Embedding(src_vocab, n_units, input_length=src_timesteps, mask_zero=True))
+    model.add(LSTM(120, return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(Dense(tar_vocab, activation='softmax'))
+    return model
+
+	
 def run_app_ncf(username, X, y, dim, movies):
 	movies_by_username = view_all_movies(username)
 	# print(movies_by_username)
@@ -234,19 +290,7 @@ def run_app_ncf(username, X, y, dim, movies):
 		clean_db = pd.DataFrame(recommended_movies,columns=["title"])
 		st.table(clean_db)
 	
-	st.header("Add movie ratings")
-	addNewMovie()
-
-	st.header("Remove movie ratings")
-	deleteExistingMovie()
-
-	st.subheader("My watched movies")
-	users_result = view_all_movies(username)
-	clean_db = pd.DataFrame(users_result, columns=["name", "rating"])
-	user_result_by_rating = view_all_movies_group_by_rating(username)
-	user_df_group = pd.DataFrame(user_result_by_rating, columns=["rating", "Number of movies"])
-	st.table(clean_db)
-	st.bar_chart(user_df_group)
+	# st.bar_chart(user_df_group)
 
 		
 def run_app(username, X, y, dim, movies):
@@ -275,12 +319,14 @@ def run_app(username, X, y, dim, movies):
 				clean_db = pd.DataFrame(recommended_movies,columns=["title"])
 				st.table(clean_db)
 			# getPredictionForSpecificUser(X,y,dim, movies)
-
+	
+def movieTable(username):
 	st.header("Add movie ratings")
 	addNewMovie()
 
-	st.header("Remove movie ratings")
-	deleteExistingMovie()
+	if (len(view_all_movie_ids(username)) > 0):
+		st.header("Remove movie ratings")
+		deleteExistingMovie()
 
 	st.subheader("My watched movies")
 	users_result = view_all_movies(username)
@@ -288,9 +334,7 @@ def run_app(username, X, y, dim, movies):
 	user_result_by_rating = view_all_movies_group_by_rating(username)
 	user_df_group = pd.DataFrame(user_result_by_rating, columns=["rating", "Number of movies"])
 	st.table(clean_db)
-	st.bar_chart(user_df_group)
-	
-	
+	# st.bar_chart(user_df_group)
 
 def format(df, id):
 	temp = df[df["id"] == id]
@@ -305,10 +349,26 @@ def addNewMovie():
 	
 	new_movie_id = col1.selectbox("Movie", options = new_db["id"], format_func = lambda x: format(new_db, x), key = 4)
 	new_rating = col2.selectbox("Rating", ratings, key = 5)
-	if col3.button("Add review"):
-		st.success("Added movie in list")
 
-		add_ratings(st.session_state.user, new_movie_id, new_rating)
+	
+	if col3.button("Add review"):
+		movies = getAllMovies()
+		user_movies = view_all_movies(st.session_state.user)
+		ok = 1
+		for movie in user_movies:
+			print(movie[0])
+			print(get_movie_id_from_list(movies, movie[0]), new_movie_id)
+			if get_movie_id_from_list(movies, movie[0]) == new_movie_id:
+				st.warning("Movie was already added")
+				ok = 0
+				break
+		if ok: 
+			st.success("Added movie in list")
+			add_ratings(st.session_state.user, new_movie_id, new_rating)
+		else:
+			st.success("Updated movie rating")
+			delete_ratings(st.session_state.user, new_movie_id)
+			add_ratings(st.session_state.user, new_movie_id, new_rating)
 
 def get_movie_id_from_list(movies, movie):
 	for m in movies:
@@ -326,9 +386,12 @@ def select_movie_currently_watching():
 def deleteExistingMovie():
 	col1, col2= st.columns(2)
 
-	new_db = pd.DataFrame(getAllMovies(), columns=["title", "id"])
+	all_db = pd.DataFrame(getAllMovies(), columns=["title", "id"])
+	user_movies = view_all_movies(st.session_state.user)
+	user_movie_titles = [movie[0] for movie in user_movies]
+	new_db =all_db[all_db["title"].apply(lambda x: any(k in x for k in user_movie_titles))]
 
-	
+
 	new_movie_id = col1.selectbox("Movie", options = new_db["id"], format_func = lambda x: format(new_db, x), key = 3)
 	if col2.button("Remove review"):
 		st.success("Removed movie from list")
@@ -398,14 +461,22 @@ def main():
 
 	if st.session_state.user:
 		st.text("Logged in as {}".format(st.session_state.user))
-		page = st.selectbox("Choose your model", ["Matrix Factorization Model", "Neural Collaborative Filtering"])
+		page = st.selectbox("Choose your model", ["Matrix Factorization Model", "Neural Collaborative Filtering", "LSTM Collaborative Filtering"])
+
+		
 		if page == "Matrix Factorization Model":
 			print("First Page")
 			run_app(st.session_state.user, X, y, dim, movies)
 
-		else:
+		if page == "Neural Collaborative Filtering":
 			print("Second Page")
 			run_app_ncf(st.session_state.user, X, y, dim, movies)
+		
+		if page == "LSTM Collaborative Filtering":
+			print("Third Page")
+			run_app_lstm(st.session_state.user, X, y, dim, movies)
+
+		movieTable(st.session_state.user)
 	else:
 		st.warning("Please log in first.")
 

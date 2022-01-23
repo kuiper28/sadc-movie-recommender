@@ -54,21 +54,43 @@ def login_user(username,password):
 	return data
 
 def view_all_users():
+	lock.acquire(True)
 	c.execute('SELECT * FROM userstable')
 	data = c.fetchall()
+	lock.release()
 	return data
 
 def view_all_movies(username):
+	lock.acquire(True)
 	c.execute('SELECT m.name, r.rating from movietable m, ratingstable r where m.movieid=r.movieid and r.username='+ '"'+str(username)+'"')
 	data = c.fetchall()
+	lock.release()
+	return data
+
+def view_all_movie_ids(username):
+	lock.acquire(True)
+	c.execute('SELECT m.movieid from movietable m, ratingstable r where m.movieid=r.movieid and r.username='+ '"'+str(username)+'"')
+	data = c.fetchall()
+	lock.release()
 	return data
 
 def view_all_movies_group_by_rating(username):
+	lock.acquire(True)
 	c.execute('SELECT r.rating, count(r.rating) from movietable m, ratingstable r where m.movieid=r.movieid and r.username='+ '"'+str(username)+'" group by r.rating')
 	data = c.fetchall()
+	lock.release()
 	return data
 
 def all_movies():
+	lock.acquire(True)
 	c.execute('Select m.name, m.movieid from movietable m')
 	data = c.fetchall()
+	lock.release()
+	return data
+
+def get_movie_name(movieid):
+	lock.acquire(True)
+	c.execute('Select m.name from movietable m where m.movieid='+str(movieid))
+	data = c.fetchall()
+	lock.release()
 	return data
