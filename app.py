@@ -68,8 +68,8 @@ def make_recommendation_for_newuser(item_sim, item_idx, movies, k=5):
     similar_items_df.columns = ['similarity','title']
     similar_items_df = similar_items_df.sort_values(by='similarity',ascending=False)
 
-    print('Recommended movies for a new user (without rating history), currently looking at movie:', similar_items_df.iloc[0]['title'])
-    print(similar_items_df[1:k+1])
+    # print('Recommended movies for a new user (without rating history), currently looking at movie:', similar_items_df.iloc[0]['title'])
+    # print(similar_items_df[1:k+1])
     return(similar_items_df[1:k+1])     
 
 # item_sim = cosine_similarity(H)                     
@@ -87,7 +87,7 @@ def getPredictionForSpecificUser(X,y,dim, movies):
 
 	count = 0
 	buff_X = np.copy(X)
-	print(buff_X)
+	# print(buff_X)
 	buff_y = np.copy(y)
 	for x in buff_X:
 		if x[0] == 6040:
@@ -119,7 +119,7 @@ def getPredictionForSpecificUser(X,y,dim, movies):
 
 	st.subheader("Movie recommendations")
 	recommended_movies = make_recommendation_for_an_existing_user(M_user, P_user, movies, 6039, k = 10)
-	print(recommended_movies)
+	# print(recommended_movies)
 	clean_db = pd.DataFrame(recommended_movies,columns=["title"])
 	st.table(clean_db)
 
@@ -140,7 +140,7 @@ def make_recommendation_for_an_existing_user(initial_rating_matrix, predicted_ra
 	user_prediction = pd.DataFrame(predicted_rating_matrix).iloc[user_idx,:]
 	preferred_movies = np.flip(np.argsort(np.array(user_ratings))[-k:])
 	recommended_movies = np.flip(np.argsort(np.array(user_prediction))[-k:])
-	print(movies.iloc[recommended_movies])
+	# print(movies.iloc[recommended_movies])
 	return movies.iloc[recommended_movies]
 
 @st.cache 
@@ -200,14 +200,14 @@ def login_func():
 
 	if st.sidebar.checkbox("Login"):
 		try_login(username, password)
+	else:
+		st.session_state.user = None
 
 
 
 def try_login(username, password):
 	result = login_user(username,password)
 	if result:
-		global logged_in
-		logged_in = True
 		st.session_state.user = username
 	else:
 		st.warning("bad")
@@ -217,7 +217,7 @@ def try_login(username, password):
 def run_app_2(X, y, dim, movies, deep=False):
 	username = "username1"
 	movies_by_username = view_all_movies(username)
-	print(movies_by_username)
+	# print(movies_by_username)
 	if (deep == True):
 		# st.subheader("Movie recommendations")
 		recommended_movies = make_prediction_ncf(1, 10, movies)
@@ -226,9 +226,8 @@ def run_app_2(X, y, dim, movies, deep=False):
 		# st.table(clean_db)
 
 def run_app_ncf(username, X, y, dim, movies):
-	st.success("Logged In as {}".format(username))
 	movies_by_username = view_all_movies(username)
-	print(movies_by_username)
+	# print(movies_by_username)
 	if (len(movies_by_username) != 0):
 		st.subheader("Movie recommendations")
 		recommended_movies = make_prediction_ncf(int(username[-1]), 10, movies)
@@ -251,7 +250,6 @@ def run_app_ncf(username, X, y, dim, movies):
 
 		
 def run_app(username, X, y, dim, movies):
-	st.success("Logged In as {}".format(username))
 	movies_by_username = view_all_movies(username)
 	print(movies_by_username)
 	if (len(movies_by_username) != 0):
@@ -335,11 +333,6 @@ def deleteExistingMovie():
 	if col2.button("Remove review"):
 		st.success("Removed movie from list")
 		delete_ratings(st.session_state.user, new_movie_id)
-def logout():
-	global logged_in
-	logged_in = False
-	st.session_state.user = None
-
 
 def get_user_movies_association(user_id, items, movies):
   users_movies_association = list()
@@ -379,7 +372,6 @@ def make_prediction_ncf(user_id, k, movies):
 
 	return movies.iloc[indices]
 
-logged_in = False
 
 def main():
     # prepare_user(1)
@@ -404,19 +396,18 @@ def main():
 	elif choice =="SignUp":
 		signup_func()
 
-	page = st.selectbox("Choose your model", ["Matrix Factorization Model", "Neural Collaborative Filtering"])
-	if page == "Matrix Factorization Model":
-		print("First Page")
-		if st.session_state.user and logged_in:
+	if st.session_state.user:
+		st.text("Logged in as {}".format(st.session_state.user))
+		page = st.selectbox("Choose your model", ["Matrix Factorization Model", "Neural Collaborative Filtering"])
+		if page == "Matrix Factorization Model":
+			print("First Page")
 			run_app(st.session_state.user, X, y, dim, movies)
+
 		else:
-			st.warning("Please log in first.")
-	else:
-		print("Second Page")
-		if st.session_state.user and logged_in:
+			print("Second Page")
 			run_app_ncf(st.session_state.user, X, y, dim, movies)
-		else:
-			st.warning("Please log in first.")
+	else:
+		st.warning("Please log in first.")
 
 if __name__ == '__main__':
 	main()
