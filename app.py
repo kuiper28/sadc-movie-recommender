@@ -22,18 +22,18 @@ import torch
 from neural_colaborative_filtering.model import NCRF
 
 
-def local_css(file_name):
-    with open(file_name) as f:
-        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+# def local_css(file_name):
+#     with open(file_name) as f:
+#         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
-def remote_css(url):
-    st.markdown(f'<link href="{url}" rel="stylesheet">', unsafe_allow_html=True)    
+# def remote_css(url):
+#     st.markdown(f'<link href="{url}" rel="stylesheet">', unsafe_allow_html=True)    
 
-def icon(icon_name):
-    st.markdown(f'<i class="material-icons">{icon_name}</i>', unsafe_allow_html=True)
+# def icon(icon_name):
+#     st.markdown(f'<i class="material-icons">{icon_name}</i>', unsafe_allow_html=True)
 
-local_css("style.css")
-remote_css('https://fonts.googleapis.com/icon?family=Material+Icons')
+# local_css("style.css")
+# remote_css('https://fonts.googleapis.com/icon?family=Material+Icons')
 
 @st.cache
 def readData():
@@ -453,6 +453,9 @@ def main():
 	# populate_databse()
 	menu = ["Login","SignUp"]
 	choice = st.sidebar.selectbox('Menu',menu)
+ 
+	with open("style.css") as f:
+    	st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 	if choice == "Login":
 		login_func()

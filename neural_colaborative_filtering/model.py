@@ -10,7 +10,6 @@ class MLP(torch.nn.Module):
         for dim in embed_dims:
             # print(embed_dim)
             layers.append(Linear(input_dim, dim))
-            layers.append(torch.nn.BatchNorm1d(dim))
             layers.append(ReLU())
             layers.append(Dropout(p=dropout))
             input_dim = dim

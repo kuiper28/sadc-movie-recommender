@@ -1,7 +1,6 @@
 from config import BATCH_SIZE, DATASET_PATH, DEVICE, EPOCH, LEARNING_RATE, MODEL_PATH, WEIGHT_DECAY
 import torch
 import tqdm
-from sklearn.metrics import roc_auc_score
 from sklearn.metrics import mean_squared_error
 from torch.utils.data import DataLoader
 
@@ -11,6 +10,7 @@ from model import NCRF
 def train(model, optimizer, data_loader, criterion, device, log_interval=1000):
     model.train()
     total_loss = 0
+    count = 0
     for i, (fields, target) in enumerate(tqdm.tqdm(data_loader, smoothing=0, mininterval=1.0)):
         fields, target = fields.to(device), target.to(device)
         y = model(fields)
@@ -19,10 +19,9 @@ def train(model, optimizer, data_loader, criterion, device, log_interval=1000):
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
-
-        if (i + 1) % log_interval == 0:
-            print('    - loss:', total_loss / log_interval)
-            total_loss = 0
+        count += 1
+    print('loss:', total_loss / log_interval)
+    total_loss = 0
 
 
 def test(model, data_loader, device):
