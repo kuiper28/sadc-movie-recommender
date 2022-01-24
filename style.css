@@ -1,12 +1,4 @@
-/* body {
-    color: #fff;
-    background-color: #ffffff;
-}
 
-.stButton>button {
-    height: 5rem;
-    width: 6rem;
-} */
 /* div.css-1r6slb0.eltzin5v2 {
     background-color: #EEEEEE;
     border: 1px solid #000000;
@@ -16,13 +8,6 @@
     position: relative;
 } */
 
-.stButton > button {
+div[data-testid="stHorizontalBlock"] > div:last-of-type {
     padding-top: 40px;
-}
-/* div.css-1c2opl8.e1tzin5v4 {
-    padding-top: 40px;
-} */
-
-/* .stTextInput>div>div>input {
-    color: #4F8BF9;
-} */
+  }
