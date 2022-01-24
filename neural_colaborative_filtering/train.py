@@ -74,7 +74,7 @@ def main(dataset_path, epoch, learning_rate,
             torch.save(model.state_dict(), MODEL_PATH)
             best_valid_rmse = valid_rmse
             print("Model saved!!!")
-        print('epoch:', epoch_i, 'validation: MSE:', valid_rmse)
+        print('epoch:', epoch_i, 'validation: RMSE:', valid_rmse)
     
     model_test = NCRF(field_dims, embed_dim=16, mlp_dims=(16, 16), dropout=0.5,
                                             user_idx=dataset.user_idx,
@@ -82,7 +82,7 @@ def main(dataset_path, epoch, learning_rate,
     model_test.load_state_dict(torch.load(MODEL_PATH))
     model_test.cuda()
     test_rmse = test(model_test, test_data_loader, device)
-    print('test MSE:', test_rmse)
+    print('test RMSE:', test_rmse)
 
 
 if __name__ == '__main__':
