@@ -16,9 +16,12 @@ div.css-1r6slb0.eltzin5v2 {
     position: relative;
 }
 
-div.css-1c2opl8.e1tzin5v4 {
+.stButton > button {
     padding-top: 40px;
 }
+/* div.css-1c2opl8.e1tzin5v4 {
+    padding-top: 40px;
+} */
 
 /* .stTextInput>div>div>input {
     color: #4F8BF9;
