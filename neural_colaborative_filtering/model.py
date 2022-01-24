@@ -6,7 +6,7 @@ class MLP(torch.nn.Module):
 
     def __init__(self, input_dim, embed_dims, dropout):
         super().__init__()
-        layers = list()
+        layers = []
         for dim in embed_dims:
             # print(embed_dim)
             layers.append(Linear(input_dim, dim))

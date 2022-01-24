@@ -3,6 +3,7 @@ import torch
 import tqdm
 from sklearn.metrics import mean_squared_error
 from torch.utils.data import DataLoader
+import numpy as np
 
 from dataset import Dataset_REC
 from model import NCRF
@@ -26,7 +27,7 @@ def train(model, optimizer, data_loader, criterion, device, log_interval=1000):
 
 def test(model, data_loader, device):
     model.eval()
-    targets, predicts = list(), list()
+    targets, predicts = [], []
     with torch.no_grad():
         for fields, target in tqdm.tqdm(data_loader, smoothing=0, mininterval=1.0):
             fields, target = fields.to(device), target.to(device)
@@ -35,7 +36,7 @@ def test(model, data_loader, device):
             targets.extend(target.tolist())
             predicts.extend(y.tolist())
 
-    return mean_squared_error(targets, predicts)
+    return  np.sqrt(mean_squared_error(targets, predicts))
 
 
 def main(dataset_path, epoch, learning_rate,
@@ -65,23 +66,23 @@ def main(dataset_path, epoch, learning_rate,
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     
-    best_valid_mse = 100
+    best_valid_rmse = 100
     for epoch_i in range(epoch):
         train(model, optimizer, train_data_loader, criterion, device)
-        valid_mse = test(model, valid_data_loader, device)
-        if (valid_mse < best_valid_mse):
+        valid_rmse = test(model, valid_data_loader, device)
+        if (valid_rmse < best_valid_rmse):
             torch.save(model.state_dict(), MODEL_PATH)
-            best_valid_mse = valid_mse
+            best_valid_rmse = valid_rmse
             print("Model saved!!!")
-        print('epoch:', epoch_i, 'validation: MSE:', valid_mse)
+        print('epoch:', epoch_i, 'validation: MSE:', valid_rmse)
     
     model_test = NCRF(field_dims, embed_dim=16, mlp_dims=(16, 16), dropout=0.5,
                                             user_idx=dataset.user_idx,
                                             item_idx=dataset.item_idx)
     model_test.load_state_dict(torch.load(MODEL_PATH))
     model_test.cuda()
-    test_mse = test(model_test, test_data_loader, device)
-    print('test MSE:', test_mse)
+    test_rmse = test(model_test, test_data_loader, device)
+    print('test MSE:', test_rmse)
 
 
 if __name__ == '__main__':
