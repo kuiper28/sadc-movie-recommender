@@ -234,7 +234,7 @@ def run_app_2(X, y, dim, movies, deep=False):
 def run_app_lstm(username, X, y, dim, movies):
 	tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 	model = create_model(3953, 3953, 128, 128, 64)
-	model.load_weights('./lstm_cf_weights/checkpoint')
+	model.load_weights('./lstm_cf_weights/checkpoint_best_sps')
 	all_movies_db = view_all_movie_ids(username)
 
 	if st.checkbox("Make movie recommendations", key=4) and len(all_movies_db) > 0:
@@ -275,8 +275,8 @@ def create_model(src_vocab, tar_vocab, src_timesteps, tar_timesteps, n_units):
     # Create the model
     model = Sequential()
     model.add(Embedding(src_vocab, n_units, input_length=src_timesteps, mask_zero=True))
-    model.add(LSTM(120, return_sequences=True))
-    model.add(Dropout(0.2))
+    model.add(LSTM(300, return_sequences=True))
+    model.add(Dropout(0.4))
     model.add(Dense(tar_vocab, activation='softmax'))
     return model
 
